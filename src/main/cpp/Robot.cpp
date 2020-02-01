@@ -28,18 +28,22 @@
 #include "networktables/NetworkTable.h"
 #include <frc/livewindow/LiveWindow.h>
 
+#include <frc/Servo.h>
+#include <rev/REVUtils.h>
+
 #include <wpi/StringMap.h>
+#include <map>
 
 
 
 
 #define CAN_ID_LEFT_A 1
 #define CAN_ID_LEFT_B 2
-#define CAN_ID_LEFT_C 3  //3
+#define CAN_ID_LEFT_C 3 
 //sketchy
 
-#define CAN_ID_RIGHT_A 4 //4
-#define CAN_ID_RIGHT_B 5 //5
+#define CAN_ID_RIGHT_A 4
+#define CAN_ID_RIGHT_B 5
 #define CAN_ID_RIGHT_C 6
 
 #define MAX_OUTPUT 1.0
@@ -111,6 +115,15 @@ class Robot : public frc::TimedRobot {
                      .WithWidget("Number Slider")
                      .GetEntry();
 
+    m_ServoPos = frc::Shuffleboard::GetTab("Configuration")
+                     .Add("ServoPos", 0)
+                     .WithWidget("Number Slider")
+                     .GetEntry();
+
+    m_ServoPos2 = frc::Shuffleboard::GetTab("Configuration")
+                     .Add("ServoPos2", 0.5)
+                     .WithWidget("Number Slider")
+                     .GetEntry();
 
     m_robotDrive.SetMaxOutput(MAX_OUTPUT);
     m_robotDrive.SetDeadband(DEADBAND);
@@ -198,6 +211,9 @@ class Robot : public frc::TimedRobot {
     double maxRatioH = m_maxSpeedHopper.GetDouble(1.0);
     double maxRatioI = m_maxSpeedI.GetDouble(1.0);
     double maxRatioD = m_maxSpeedD.GetDouble(1.0);
+
+    double servoPos = m_ServoPos.GetDouble(0);
+    double servoPos2 = m_ServoPos2.GetDouble(0.5);
     
     //double rightStick = m_stickD.GetX(frc::GenericHID::JoystickHand::kRightHand);    //Testing
     double rightStick = m_stickD.GetX(frc::GenericHID::JoystickHand::kRightHand);    //Testing
@@ -265,7 +281,30 @@ class Robot : public frc::TimedRobot {
      {
        m_zero.Set(0);
      }
-    
+
+    //Servo
+    m_servo.SetAngle(servoPos);
+    m_servo2.SetPosition(servoPos2);
+
+    //Lime
+    std::shared_ptr<NetworkTable> table = nt::NetworkTableInstance::GetDefault().GetTable("limelight");
+    float tx = table->GetNumber("tx", 0.0);
+    float tv = table->GetNumber("tv" , 0.0);
+
+    if (m_stickD.GetRawButton(1))
+     {
+      nt::NetworkTableInstance::GetDefault().GetTable("limelight")->PutNumber("ledMode",3);
+     }
+     else
+     {
+      nt::NetworkTableInstance::GetDefault().GetTable("limelight")->PutNumber("ledMode",1);
+     }
+
+    frc::SmartDashboard::PutNumber("Servo Min 1",m_servo.GetMinAngle());
+    frc::SmartDashboard::PutNumber("Servo Max 1",m_servo.GetMaxAngle());
+
+    frc::SmartDashboard::PutNumber("Servo Min 2",m_servo2.GetMinAngle());
+    frc::SmartDashboard::PutNumber("Servo Max 2",m_servo2.GetMaxAngle());
 
     
     frc::SmartDashboard::PutNumber("Right Stick" , rightStick);
@@ -312,6 +351,9 @@ class Robot : public frc::TimedRobot {
   //frc::Talon m_nine{7};
 
 
+  frc::Servo m_servo {6};
+  frc::Servo m_servo2 {7};
+
   // drive
   rev::CANSparkMax m_drive_l_A { CAN_ID_LEFT_A ,  rev::CANSparkMax::MotorType::kBrushless};
   rev::CANSparkMax m_drive_l_B { CAN_ID_LEFT_B ,  rev::CANSparkMax::MotorType::kBrushless};
@@ -338,6 +380,8 @@ class Robot : public frc::TimedRobot {
   nt::NetworkTableEntry m_maxSpeedI;
 
   nt::NetworkTableEntry m_maxSpeedD;
+  nt::NetworkTableEntry m_ServoPos;
+  nt::NetworkTableEntry m_ServoPos2;
 
 };
 
